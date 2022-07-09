@@ -1,12 +1,12 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { addHours, differenceInSeconds } from 'date-fns';
 import es from 'date-fns/locale/es';
 import ReactDatePicker, { registerLocale } from 'react-datepicker';
+import Swal from 'sweetalert2';
 import Modal from 'react-modal/lib/components/Modal';
 
 import "react-datepicker/dist/react-datepicker.css";
-import Swal from 'sweetalert2';
-
+import { useCalendarStore, useUiStore } from '../../hooks';
 
 registerLocale('es', es)
 
@@ -24,36 +24,35 @@ const customStyles = {
 
 Modal.setAppElement('#root');
 
-export const CalModal = () => {
+export const CalendarModal = () => {
 
-    const [isOpen, setIsOpen] = useState(true)
-    const [ formSubmitted, setFormSubmitted] = useState(false)
-    const [ formValues, setFormValues] = useState({
+    const { activeEvent, startSavingEvent } = useCalendarStore()
+
+    const [formSubmitted, setFormSubmitted] = useState(false)
+    const [formValues, setFormValues] = useState({
         title: 'Titulo del evento',
         notes: 'Notas como contenido',
         start: new Date(),
         end: addHours(new Date(), 2)
     })
 
-    const onCloseModal = () => {
-        setIsOpen(false)
-    }
+    const { isDateModalOpen, closeDateModal } = useUiStore()
 
     const onInputChange = ({ target }) => {
         setFormValues({
             ...formValues,
-            [ target.name ]: target.value
+            [target.name]: target.value
         })
     }
 
     const onDateChange = (event, changing) => {
         setFormValues({
             ...formValues,
-            [ changing ]: event
+            [changing]: event
         })
     }
 
-    const onSubmit = (e) => {
+    const onSubmit = async (e) => {
         e.preventDefault()
         setFormSubmitted(true)
 
@@ -68,7 +67,9 @@ export const CalModal = () => {
 
         console.log(formValues)
 
-        setIsOpen(false)
+        startSavingEvent(formValues)
+        closeDateModal()
+        setFormSubmitted(false)
     }
 
     const titleInvalid = useMemo(() => {
@@ -76,12 +77,19 @@ export const CalModal = () => {
 
         return (formValues.title.trim().length <= 0) ? 'is-invalid' : ''
 
-    }, [ formValues.title, formSubmitted ])
+    }, [formValues.title, formSubmitted])
+
+    useEffect(() => {
+        if (activeEvent) {
+            setFormValues(activeEvent)
+        } 
+    }, [ activeEvent ])
+
 
     return (
         <Modal
-            isOpen={isOpen}
-            onRequestClose={onCloseModal}
+            isOpen={isDateModalOpen}
+            onRequestClose={closeDateModal}
             style={customStyles}
             contentLabel="Example Modal"
             className="modal"
@@ -90,14 +98,14 @@ export const CalModal = () => {
         >
             <h2> Nuevo evento </h2>
             <hr />
-            <form className="container" onSubmit={ onSubmit }>
+            <form className="container" onSubmit={onSubmit}>
 
                 <div className="form-group mb-2">
                     <label>Fecha y hora inicio</label>
                     <ReactDatePicker
-                        className="form-control" 
-                        selected={ formValues.start }
-                        onChange={ event => onDateChange(event, 'start') }
+                        className="form-control"
+                        selected={formValues.start}
+                        onChange={event => onDateChange(event, 'start')}
                         dateFormat="Pp"
                         locale="es"
                         showTimeSelect
@@ -108,9 +116,9 @@ export const CalModal = () => {
                     <label>Fecha y hora fin</label>
                     <ReactDatePicker
                         className="form-control"
-                        minDate={ formValues.start } 
-                        selected={ formValues.end }
-                        onChange={ event => onDateChange(event, 'end') }
+                        minDate={formValues.start}
+                        selected={formValues.end}
+                        onChange={event => onDateChange(event, 'end')}
                         dateFormat="Pp"
                         locale="es"
                         showTimeSelect
@@ -122,12 +130,12 @@ export const CalModal = () => {
                     <label>Titulo y notas</label>
                     <input
                         type="text"
-                        className={`form-control ${ titleInvalid }`}
+                        className={`form-control ${titleInvalid}`}
                         placeholder="Título del evento"
                         name="title"
                         autoComplete="off"
-                        value={ formValues.title }
-                        onChange={ onInputChange }
+                        value={formValues.title}
+                        onChange={onInputChange}
                     />
                     <small id="emailHelp" className="form-text text-muted">Una descripción corta</small>
                 </div>
@@ -139,8 +147,8 @@ export const CalModal = () => {
                         placeholder="Notas"
                         rows="5"
                         name="notes"
-                        value={ formValues.notes }
-                        onChange={ onInputChange }
+                        value={formValues.notes}
+                        onChange={onInputChange}
                     ></textarea>
                     <small id="emailHelp" className="form-text text-muted">Información adicional</small>
                 </div>

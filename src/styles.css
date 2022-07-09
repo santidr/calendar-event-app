@@ -44,3 +44,20 @@ body {
   outline: none;
   padding: 20px;
 }
+
+.fab {
+  border-radius: 50%;
+  position: fixed;
+  bottom: 25px;
+  height: 55px;
+  width: 55px;
+  font-size: 20px;
+}
+
+.fab-primary {
+  right: 35px;
+}
+
+.fab-danger {
+  left: 35px;
+}
